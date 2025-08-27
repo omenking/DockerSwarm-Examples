@@ -1,0 +1,38 @@
+FROM ruby:3.3
+
+# Set development environment
+ENV RAILS_ENV=development \
+    BUNDLE_PATH=/bundle \
+    BUNDLE_APP_CONFIG=/bundle
+
+# Install system dependencies
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+    build-essential \
+    git \
+    libpq-dev \
+    nodejs \
+    postgresql-client \
+    vim \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
+# Create app directory
+WORKDIR /app
+
+# Install gems
+COPY Gemfile Gemfile.lock ./
+RUN bundle install
+
+# Copy the rest of the application
+COPY . .
+
+# Add a script to be executed every time the container starts
+COPY entrypoint.sh /usr/bin/
+RUN chmod +x /usr/bin/entrypoint.sh
+ENTRYPOINT ["entrypoint.sh"]
+
+# Configure the port
+EXPOSE 3000
+
+# Start the server by default
+CMD ["rails", "server", "-b", "0.0.0.0"]
