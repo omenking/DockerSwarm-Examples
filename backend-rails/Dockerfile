@@ -42,8 +42,8 @@ RUN bundle install && \
 # Copy application code
 COPY . .
 
-RUN ls -la
-RUN chmod +x /rails/bin/docker-entrypoint.sh
+#RUN ls -la
+#RUN chmod +x /rails/bin/docker-entrypoint.sh
 
 # Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile app/ lib/
@@ -54,6 +54,8 @@ FROM base
 # Copy built artifacts: gems, application
 COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --from=build /rails /rails
+
+RUN chmod +x /rails/bin/docker-entrypoint
 
 # Run and own only the runtime files as a non-root user for security
 # chmod the docker entry point
