@@ -7,7 +7,7 @@ image: todos/backend-rails
 # Deploy to these servers.
 servers:
   web:
-    - 35.182.249.59
+    - 99.79.32.186 
   # job:
   #   hosts:
   #     - 192.168.0.1
@@ -67,7 +67,7 @@ volumes:
 # Bridge fingerprinted assets, like JS and CSS, between versions to avoid
 # hitting 404 on in-flight requests. Combines all files from new and old
 # version inside the asset_path.
-asset_path: /rails/public/assets
+#asset_path: /rails/public/assets
 
 # Configure the image builder.
 builder:
@@ -84,13 +84,14 @@ builder:
   #   - RAILS_MASTER_KEY
 
 # Use a different ssh user than root
-# ssh:
-#   user: app
+ssh:
+  user: ubuntu
+  keys: [ "~/.ssh/kamal.pem" ]
 
 accessories:
   db:
     image: postgres:17
-    host: 35.182.249.59
+    host: 99.79.32.186 
     port: 5432 # Default PostgreSQL port
     env:
       secret:
