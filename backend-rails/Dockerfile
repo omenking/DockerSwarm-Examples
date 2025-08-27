@@ -42,6 +42,7 @@ RUN bundle install && \
 # Copy application code
 COPY . .
 
+RUN ls -la
 RUN chmod +x /rails/bin/docker-entrypoint.sh
 
 # Precompile bootsnap code for faster boot times
