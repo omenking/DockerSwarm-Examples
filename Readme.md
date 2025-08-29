@@ -45,6 +45,12 @@ Use the private IP address
 ```sh
 docker swarm init --advertise-addr 172.31.35.54
 ```
+## Check if Swarm is initialized
+
+```sh
+docker info
+docker node ls
+```
 
 ## Add Workers (optional)
 
