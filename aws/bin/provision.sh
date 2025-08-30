@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+STACK_NAME="todos-vm"
+IMAGE_ID="ami-0dd67d541aa70c8b9" # ca-central-1 Ubuntu 24.04 LTS
+
+DEFAULT_VPC_ID=$(aws ec2 describe-vpcs \
+  --filters "Name=is-default,Values=true" \
+  --query "Vpcs[0].VpcId" \
+  --output text \
+  --region ca-central-1)
+
+DEFAULT_SUBNET_ID=$(aws ec2 describe-subnets \
+  --filters "Name=vpc-id,Values=$DEFAULT_VPC_ID" \
+  --query "Subnets[0].SubnetId" \
+  --output text \
+  --region ca-central-1)
+
+# https://awscli.amazonaws.com/v2/documentation/api/latest/reference/cloudformation/deploy/index.html
+aws cloudformation deploy \
+--template-file aws/template.yaml \
+--capabilities CAPABILITY_NAMED_IAM \
+--no-execute-changeset \
+--region ca-central-1 \
+--stack-name $STACK_NAME \
+--parameter-overrides \
+    ImageId=$IMAGE_ID \
+    VpcId=$DEFAULT_VPC_ID \
+    SubnetId=$DEFAULT_SUBNET_ID
