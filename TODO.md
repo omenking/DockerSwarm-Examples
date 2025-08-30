@@ -1,0 +1,3 @@
+- Install AWS CLI Script
+- Be able to pull images from ECR
+- Be able start docker compose file.

@@ -4,7 +4,7 @@ set -e
 
 # Configuration
 ECR_REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
-REPOSITORY_NAME="backend-rails"
+REPOSITORY_NAME="todos/backend-rails"
 IMAGE_TAG="${1:-latest}"
 
 # Build Docker image

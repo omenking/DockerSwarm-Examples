@@ -1,27 +1,36 @@
 #!/bin/bash -x
-# Bootstrap Ubuntu Install Docker and Initialize Swarm
 
+# Install AWS CLI -------------
+# We need this so we can authenicate to ECR to pull our image
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+
+# Install Docker -------------
 sudo apt-get update
 sudo apt-get install ca-certificates curl
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
-
 # Add the repository to Apt sources:
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
   $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 sudo apt-get update
-
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 
+# Make Docker Sudoless ------
 # If ths group already exists don't error out.
 sudo groupadd docker 2>/dev/null || true
 
 sudo usermod -aG docker $USER
 newgrp docker
 
+# Initialize Docker Swarm ----
 # Use the instance's private IP for advertise-addr (simple IMDS call)
 PRIVATE_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
 docker swarm init --advertise-addr "$PRIVATE_IP"
+
+
+ aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com

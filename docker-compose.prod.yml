@@ -1,0 +1,36 @@
+services:
+  backend:
+    image: 982383527471.dkr.ecr.ca-central-1.amazonaws.com/todos/backend-rails
+    deploy:
+      replicas: 1
+    volumes:
+      - ./backend-rails:/app
+    working_dir: /app
+    command: bundle exec rails server -b 0.0.0.0
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/todos_dev
+      - RAILS_ENV=development
+    depends_on:
+      - db
+    restart: unless-stopped
+  db:
+    image: postgres:14
+    deploy:
+      replicas: 1
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=postgres
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+volumes:
+  postgres_data:
+  bundle_cache:
+
+networks:
+  default:
+    driver: bridge
