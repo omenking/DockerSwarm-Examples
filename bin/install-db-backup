@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+ansible-playbook -i inventory.ini playbooks/install-db-backup.yml 

@@ -1,0 +1,44 @@
+# https://github.com/wal-g/wal-g
+---
+- name: Install WAL-G on Ubuntu
+  hosts: todos-vm
+  become: yes
+  tasks:
+    - name: Ensure dependencies (wget, tar, ca-certificates)
+      apt:
+        name:
+          - wget
+          - ca-certificates
+        state: present
+        update_cache: yes
+
+    - name: Download WAL-G release archive
+      get_url:
+        url: https://github.com/wal-g/wal-g/releases/download/v3.0.7/wal-g-pg-ubuntu-24.04-amd64.tar.gz
+        dest: /tmp/wal-g-pg-ubuntu-24.04-amd64.tar.gz
+        mode: '0644'
+
+    - name: Extract WAL-G binary
+      unarchive:
+        src: /tmp/wal-g-pg-ubuntu-24.04-amd64.tar.gz
+        dest: /usr/local/bin/
+        remote_src: yes
+    - name: Rename extracted WAL-G binary
+      command: mv /usr/local/bin/wal-g-pg-ubuntu-24.04-amd64 /usr/local/bin/wal-g
+      args:
+        creates: /usr/local/bin/wal-g
+    - name: Ensure WAL-G is executable
+      file:
+        path: /usr/local/bin/wal-g
+        mode: '0755'
+        owner: root
+        group: root
+        state: file
+
+    - name: Verify WAL-G installed
+      command: wal-g --version
+      register: wal_g_version
+      changed_when: false
+
+    - debug:
+        msg: "WAL-G installed: {{ wal_g_version.stdout }}"

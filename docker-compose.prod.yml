@@ -10,9 +10,9 @@ services:
     working_dir: /app
     command: bundle exec rails server -b 0.0.0.0
     ports:
-      - "3000:3000"
+      - "80:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/todos_dev
+      - DATABASE_URL=postgresql://postgres:password@db:5432/todos_prod
       - RAILS_ENV=production
       - SECRET_KEY_BASE=VerySecret111
     networks:
@@ -34,6 +34,7 @@ services:
     environment:
       - POSTGRES_PASSWORD=password
       - POSTGRES_USER=postgres
+      - POSTGRES_DB=todos_prod
     ports:
       - "5432:5432"
     networks:
