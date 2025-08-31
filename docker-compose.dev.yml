@@ -1,8 +1,9 @@
 services:
   backend:
-    build:
-      context: ./backend-rails
-      dockerfile: Dockerfile.dev
+    #build:
+    #  context: ./backend-rails
+    #  dockerfile: Dockerfile.dev
+    image: 982383527471.dkr.ecr.ca-central-1.amazonaws.com/todos/backend-rails
     volumes:
       - ./backend-rails:/app
       #- bundle_cache:/bundle

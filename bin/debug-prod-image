@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+# Let us run the prod image and shell in.
+docker run --rm -it \
+  --entrypoint bash \
+  -w /rails \
+  982383527471.dkr.ecr.ca-central-1.amazonaws.com/todos/backend-rails:latest

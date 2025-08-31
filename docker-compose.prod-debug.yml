@@ -1,12 +1,9 @@
+# This is similar to prod but stripping the docker swarm specific
+# code so we can debug prod env locally.
+
 services:
   backend:
     image: 982383527471.dkr.ecr.ca-central-1.amazonaws.com/todos/backend-rails
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
     working_dir: /app
     command: bundle exec rails server -b 0.0.0.0
     ports:
@@ -15,20 +12,11 @@ services:
       - DATABASE_URL=postgresql://postgres:password@db:5432/todos_dev
       - RAILS_ENV=production
       - SECRET_KEY_BASE=VerySecret111
-    networks:
-      - todos_network
     depends_on:
       - db
 
   db:
     image: postgres:14
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints:
-          - node.role == manager  # Keep DB on manager for data persistence
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
@@ -36,14 +24,11 @@ services:
       - POSTGRES_USER=postgres
     ports:
       - "5432:5432"
-    networks:
-      - todos_network
 
 volumes:
   postgres_data:
     driver: local
 
 networks:
-  todos_network:
-    driver: overlay
-    attachable: true
+  default:
+    driver: bridge

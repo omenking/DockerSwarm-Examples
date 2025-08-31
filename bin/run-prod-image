@@ -1,0 +1,7 @@
+docker run --rm -it \
+  -p 3000:80 \
+  -e RAILS_ENV=production \
+  -e RAILS_MASTER_KEY=YOUR_MASTER_KEY \
+  -e SECRET_KEY_BASE=$(ruby -e 'require "securerandom"; print SecureRandom.hex(64)') \
+  -e RAILS_LOG_TO_STDOUT=1 \
+  982383527471.dkr.ecr.ca-central-1.amazonaws.com/todos/backend-rails:latest

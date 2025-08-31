@@ -102,3 +102,12 @@ Outputs:
     Value: !GetAtt WebInstance.PublicIp
     Export:
       Name: !Sub '${AWS::StackName}-PublicIP'
+
+# Get the public IP from stack outputs
+PUBLIC_IP=$(aws cloudformation describe-stacks \
+  --stack-name $STACK_NAME \
+  --region ca-central-1 \
+  --query "Stacks[0].Outputs[?OutputKey=='InstancePublicIP'].OutputValue" \
+  --output text)
+
+echo "Instance Public IP: $PUBLIC_IP"
