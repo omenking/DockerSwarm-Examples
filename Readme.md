@@ -1,50 +1,65 @@
-# Create an example rails app
+# End-to-End Pipeline
+
+## Preq
 
 ```sh
-gem install rails
+sudo pip install ansible
+```
+
+> Install Ansible via python because you'll get the latest version, sudo will make it global
+
+If you're on Ubuntu for local machine you'll need pipx because you cant globally install with sudo to not conflict with apt
+
+```sh
+sudo apt install pipx
+pipx ensurepath
+pipx install --force ansible-core
+pipx inject ansible-core boto3 botocore
 ```
 
 ```sh
-rails new todos --api --database=postgresql
+ansible-galaxy collection install amazon.aws
+ansible-galaxy collection install amazon.aws --upgrade
 ```
 
-## Ubuntu
+> Make sure you are using at least 10 of amazon.aws, maybe force an update
 
-Launch Ubuntu on AWS
+https://galaxy.ansible.com/ui/repo/published/amazon/aws/docs/?extIdCarryOver=true&sc_cid=RHCTG0180000371695
 
-# Install Docker
+##  Build and Push to Container Registery
+
+We will want to build our production docker images locally
+and then push them to our container registry.
 
 ```sh
-# Add Docker's official GPG key:
-sudo apt-get update
-sudo apt-get install ca-certificates curl
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-# Add the repository to Apt sources:
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
+./bin/build
 ```
 
-## Sudoless Docker
+## Provision Virtual Machine
+
+Provision a virtual machine
 
 ```sh
-sudo groupadd docker
-sudo usermod -aG docker $USER
-newgrp docker
+./bin/provision
 ```
 
-## Init Swarm
+## Bootstrap with Docker Swarm
 
-Use the private IP address
+We'll bootstrap our server to be able to run a cluster
+- Install AWS CLI
+- Install Docker
+- Ensure Docker Sudoless
+- Initialize Docker Swarm
 
 ```sh
-docker swarm init --advertise-addr 172.31.35.54
+./bin/bootstrap
 ```
+
+## Configure Docker Context For Remote Swarm
+
+We will want to control our swarm from our local machine.
+We'll update our ssh configure and create a docker context.
+
 ## Check if Swarm is initialized
 
 ```sh
@@ -155,4 +170,39 @@ If localhost doesn't work try 127.0.0.1, 0.0.0.0 when curling
 
 
 
+
+
+
+curl -sSL https://raw.githubusercontent.com/omenking/DockerSwarm-Examples/refs/heads/main/aws/bin/bootstrap.sh | bash
+
+
+
+## Anisble setup
+
+```sh
+sudo apt install anisble -y
+```
+
+
+ansible all -i inventory.ini -m ping
+ansible-playbook -i inventory.ini bootstrap.yml 
+
+## Docker Context
+
+Be able to run docker comands from local machine to target machine.
+
+vi ~/.ssh/config
+
+```sh
+Host swarm-vm
+    HostName 15.222.242.130
+    User ubuntu
+    IdentityFile /home/andrew/.ssh/aws-developers.pem
+    IdentitiesOnly yes
+```
+
+docker context create swarm-remote --docker "host=ssh://swarm-vm"
+docker context use swarm-remote
+docker context rm swarm-remote -f
+docker context use default
 

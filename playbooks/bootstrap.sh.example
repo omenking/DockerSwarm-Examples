@@ -2,6 +2,7 @@
 
 # Install AWS CLI -------------
 # We need this so we can authenicate to ECR to pull our image
+sudo apt-get install unzip
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
 sudo ./aws/install
@@ -31,6 +32,3 @@ newgrp docker
 # Use the instance's private IP for advertise-addr (simple IMDS call)
 PRIVATE_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
 docker swarm init --advertise-addr "$PRIVATE_IP"
-
-
- aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com

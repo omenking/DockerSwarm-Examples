@@ -1,0 +1,118 @@
+---
+- name: Bootstrap server with AWS CLI and Docker
+  hosts: todos-vm
+  become: yes
+  tasks:
+    - name: Install unzip for AWS CLI installation
+      apt:
+        name: unzip
+        state: present
+        
+    - name: Download AWS CLI v2
+      get_url:
+        url: "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+        dest: /tmp/awscliv2.zip
+        
+    - name: Unzip AWS CLI
+      unarchive:
+        src: /tmp/awscliv2.zip
+        dest: /tmp
+        remote_src: yes
+        
+    - name: Install AWS CLI
+      shell: sudo /tmp/aws/install
+      
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+        
+    - name: Install Docker prerequisites
+      apt:
+        name:
+          - ca-certificates
+          - curl
+        state: present
+        
+    - name: Create Docker keyring directory
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+        
+    - name: Download Docker GPG key
+      get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
+        
+    - name: Add Docker repository to apt sources
+      shell: |
+        echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+          $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+          tee /etc/apt/sources.list.d/docker.list > /dev/null
+          
+    - name: Update apt cache after adding Docker repo
+      apt:
+        update_cache: yes
+        
+    - name: Install Docker packages
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+        
+    - name: Create docker group (ignore if exists)
+      group:
+        name: docker
+        state: present
+        
+    - name: Add current user to docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+        
+    - name: Get IMDSv2 token
+      uri:
+        url: http://169.254.169.254/latest/api/token
+        method: PUT
+        headers:
+          X-aws-ec2-metadata-token-ttl-seconds: "21600"
+        return_content: yes
+      register: imds_token
+      
+    - name: Debug IMDS token
+      debug:
+        msg: "IMDS Token: {{ imds_token.content }}"
+        
+    - name: Get instance private IP for Docker Swarm
+      uri:
+        url: http://169.254.169.254/latest/meta-data/local-ipv4
+        headers:
+          X-aws-ec2-metadata-token: "{{ imds_token.content }}"
+        return_content: yes
+      register: private_ip
+      
+    - name: Debug private IP
+      debug:
+        msg: "Private IP: {{ private_ip.content }}"
+    - name: Reset SSH connection to pick up docker group membership
+      meta: reset_connection
+      
+    - name: Test docker access
+      shell: docker info
+      become: no
+      register: docker_test
+      
+    - name: Debug docker access
+      debug:
+        msg: "Docker test result: {{ docker_test.stdout_lines[0:3] }}"        
+    - name: Initialize Docker Swarm
+      shell: docker swarm init --advertise-addr "{{ private_ip.content }}"
+      become_user: "{{ ansible_user }}"
+      ignore_errors: yes

@@ -14,6 +14,10 @@ Parameters:
   SubnetId:
     Type: AWS::EC2::Subnet::Id
     Description: Subnet ID where the instance will be launched
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of existing EC2 KeyPair
+    Default: ''
 Resources:
   # IAM Role for EC2 instance
   EC2Role:
@@ -52,6 +56,11 @@ Resources:
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH Access
+        - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
@@ -75,10 +84,21 @@ Resources:
     Properties:
       InstanceType: !Ref InstanceType
       ImageId: !Ref ImageId
+      KeyName: !Ref KeyPairName
       IamInstanceProfile: !Ref EC2InstanceProfile
       SecurityGroupIds:
         - !Ref WebSecurityGroup
       SubnetId: !Ref SubnetId
+      MetadataOptions:
+        HttpTokens: required  # Force IMDSv2 only - more secure
+        HttpPutResponseHopLimit: 2
+        HttpEndpoint: enabled
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-WebInstance'
+Outputs:
+  InstancePublicIP:
+    Description: Public IP address of the instance
+    Value: !GetAtt WebInstance.PublicIp
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicIP'

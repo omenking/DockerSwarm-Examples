@@ -1,0 +1,147 @@
+---
+- name: Deploy EC2 instance and configure local SSH
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars:
+    stack_name: "todos-vm"
+    image_id: "ami-0dd67d541aa70c8b9"  # ca-central-1 Ubuntu 24.04 LTS
+    key_pair_name: "aws-developers"
+    region: "ca-central-1"
+    ssh_key_path: "{{ ansible_env.HOME }}/.ssh/aws-developers.pem"
+    ssh_config_path: "{{ ansible_env.HOME }}/.ssh/config"
+    
+  tasks:
+    - name: Get default VPC ID
+      amazon.aws.ec2_vpc_net_info:
+        region: "{{ region }}"
+        filters:
+          "is-default": "true"
+      register: vpc_info
+    
+    - name: Set default VPC ID
+      set_fact:
+        default_vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
+    
+    - name: Get default subnet ID
+      amazon.aws.ec2_vpc_subnet_info:
+        region: "{{ region }}"
+        filters:
+          vpc-id: "{{ default_vpc_id }}"
+      register: subnet_info
+    
+    - name: Set default subnet ID
+      set_fact:
+        default_subnet_id: "{{ subnet_info.subnets[0].subnet_id }}"
+    
+    - name: Deploy CloudFormation stack
+      amazon.aws.cloudformation:
+        stack_name: "{{ stack_name }}"
+        state: present
+        region: "{{ region }}"
+        # relative to the location of the playbook
+        template: "./../template.yaml"
+        capabilities:
+          - CAPABILITY_NAMED_IAM
+        template_parameters:
+          ImageId: "{{ image_id }}"
+          VpcId: "{{ default_vpc_id }}"
+          SubnetId: "{{ default_subnet_id }}"
+          KeyPairName: "{{ key_pair_name }}"
+        tags:
+          Environment: development
+          Project: todos
+      register: stack_result
+    
+    - name: Get stack outputs
+      amazon.aws.cloudformation_info:
+        stack_name: "{{ stack_name }}"
+        region: "{{ region }}"
+      register: stack_info
+
+    - name: Extract public IP from stack outputs
+      set_fact:
+        instance_public_ip: "{{ stack_info.cloudformation[stack_name].stack_outputs.InstancePublicIP }}"
+      when: stack_info.cloudformation[stack_name].stack_outputs.InstancePublicIP is defined
+
+    - name: Display instance information
+      debug:
+        msg: |
+          Stack deployed successfully!
+          Instance Public IP: {{ instance_public_ip | default('N/A') }}
+    
+    - name: Ensure .ssh directory exists
+      file:
+        path: "{{ ansible_env.HOME }}/.ssh"
+        state: directory
+        mode: '0700'
+    
+    - name: Remove existing SSH host entry if it exists
+      blockinfile:
+        path: "{{ ssh_config_path }}"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - {{ stack_name }}"
+        block: ""
+        state: absent
+      ignore_errors: yes
+    
+    - name: Add new SSH host configuration
+      blockinfile:
+        path: "{{ ssh_config_path }}"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - {{ stack_name }}"
+        block: |
+          Host {{ stack_name }}
+              HostName {{ instance_public_ip }}
+              User ubuntu
+              IdentityFile {{ ssh_key_path }}
+              IdentitiesOnly yes
+              StrictHostKeyChecking no
+              UserKnownHostsFile /dev/null
+        create: yes
+        mode: '0600'
+    
+    - name: Wait for SSH to be available
+      wait_for:
+        host: "{{ instance_public_ip }}"
+        port: 22
+        delay: 10
+        timeout: 300
+    
+    - name: Test SSH connection
+      command: ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no {{ stack_name }} echo "SSH connection successful"
+      register: ssh_test
+      ignore_errors: yes
+    
+    - name: Create Docker context for the swarm
+      shell: |
+        docker context rm {{ stack_name }} 2>/dev/null || true
+        docker context create {{ stack_name }} --docker "host=ssh://{{ stack_name }}"
+      ignore_errors: yes
+      when: ssh_test is succeeded
+    
+    - name: Update inventory.ini with new instance
+      blockinfile:
+        path: ./../inventory.ini
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - {{ stack_name }}"
+        block: |
+          [{{ stack_name }}]
+          {{ instance_public_ip }} ansible_user=ubuntu ansible_ssh_private_key_file={{ ssh_key_path }} ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+          
+          [ec2_instances:children]
+          {{ stack_name }}
+        create: yes
+        mode: '0644'
+    
+    - name: Display final status
+      debug:
+        msg: |
+          Instance Details:
+          - Stack Name: {{ stack_name }}
+          - Public IP: {{ instance_public_ip }}
+          - SSH Key: {{ ssh_key_path }}
+          Files Updated:
+          - SSH Config: {{ ssh_config_path }}
+          - Inventory: inventory.ini
+          Usage:
+          - SSH: ssh {{ stack_name }}
+          - Docker Context: docker context use {{ stack_name }}
+          - Next playbook: ansible-playbook -i inventory.ini your-next-playbook.yml
