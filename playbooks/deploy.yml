@@ -1,0 +1,54 @@
+---
+- name: Deploy Docker Stack to Swarm
+  hosts: todos-vm
+  become: yes
+  vars:
+    stack_name: todos
+    compose_file: ./../docker-compose.prod.yml
+    ecr_registry: 982383527471.dkr.ecr.ca-central-1.amazonaws.com
+    aws_region: ca-central-1
+  tasks:
+    - name: Check if swarm is initialized
+      ansible.builtin.command: >
+        docker info --format '{{ "{{.Swarm.LocalNodeState}}" }}'
+      register: swarm_state
+      changed_when: false
+    - name: Get ECR login token
+      shell: |
+        aws ecr get-login-password --region {{ aws_region }}
+      register: ecr_token
+      become: false
+      run_once: true
+    - name: Login to ECR registry
+      docker_login:
+        registry: "{{ ecr_registry }}"
+        username: AWS
+        password: "{{ ecr_token.stdout }}"
+    - name: Copy docker-compose file to remote
+      copy:
+        src: "{{ compose_file }}"
+        dest: "/tmp/{{ compose_file }}"
+        mode: '0644'
+    - name: Pull Docker images
+      docker_image:
+        name: "{{ ecr_registry }}/todos/backend-rails:latest"
+        source: pull
+        force_source: yes
+    - name: Deploy Docker stack
+      docker_stack:
+        name: "{{ stack_name }}"
+        compose:
+          - "/tmp/{{ compose_file }}"
+        state: present
+    - name: Show stack services status
+      command: docker service ls --filter name={{ stack_name }}
+      register: services_status
+    - name: Display services status
+      debug:
+        var: services_status.stdout_lines
+    - name: Show stack ps output
+      command: docker stack ps {{ stack_name }}
+      register: stack_ps
+    - name: Display stack tasks
+      debug:
+        var: stack_ps.stdout_lines

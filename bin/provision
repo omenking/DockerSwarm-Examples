@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
+# We don't provide inventory since we are running locally
 ansible-playbook playbooks/provision.yml 

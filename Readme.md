@@ -24,6 +24,10 @@ ansible-galaxy collection install amazon.aws --upgrade
 
 > Make sure you are using at least 10 of amazon.aws, maybe force an update
 
+```sh
+ansible-galaxy collection install community.docker
+```
+
 https://galaxy.ansible.com/ui/repo/published/amazon/aws/docs/?extIdCarryOver=true&sc_cid=RHCTG0180000371695
 
 ##  Build and Push to Container Registery
@@ -53,6 +57,12 @@ We'll bootstrap our server to be able to run a cluster
 
 ```sh
 ./bin/bootstrap
+```
+
+## Deploy Workload
+
+```sh
+docker stack deploy -c docker-compose.prod.yml todos
 ```
 
 ## Configure Docker Context For Remote Swarm

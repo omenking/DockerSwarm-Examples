@@ -1,10 +1,14 @@
+version: '3.8'
+
 services:
   backend:
     image: 982383527471.dkr.ecr.ca-central-1.amazonaws.com/todos/backend-rails
     deploy:
       replicas: 1
-    volumes:
-      - ./backend-rails:/app
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
     working_dir: /app
     command: bundle exec rails server -b 0.0.0.0
     ports:
@@ -12,13 +16,20 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:password@db:5432/todos_dev
       - RAILS_ENV=development
+    networks:
+      - todos_network
     depends_on:
       - db
-    restart: unless-stopped
+
   db:
     image: postgres:14
     deploy:
       replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager  # Keep DB on manager for data persistence
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
@@ -26,11 +37,14 @@ services:
       - POSTGRES_USER=postgres
     ports:
       - "5432:5432"
-    restart: unless-stopped
+    networks:
+      - todos_network
+
 volumes:
   postgres_data:
-  bundle_cache:
+    driver: local
 
 networks:
-  default:
-    driver: bridge
+  todos_network:
+    driver: overlay
+    attachable: true
