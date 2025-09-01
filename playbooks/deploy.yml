@@ -29,19 +29,24 @@
         src: "{{ compose_file }}"
         dest: "/tmp/{{ compose_file }}"
         mode: '0644'
-    #- name: Pull Docker images
-    #  docker_image:
-    #    name: "{{ ecr_registry }}/todos/backend-rails:latest"
-    #    source: pull
-    #    force_source: yes
+    - name: Pull Docker images
+      docker_image:
+        name: "{{ ecr_registry }}/todos/backend-rails:latest"
+        source: pull
+        force_source: yes
+    - name: Pull Docker images
+      docker_image:
+        name: "{{ ecr_registry }}/todos/db:latest"
+        source: pull
+        force_source: yes
     - name: Deploy Docker stack
       docker_stack:
         name: "{{ stack_name }}"
         compose:
           - "/tmp/{{ compose_file }}"
         state: present
-        resolve_image: always     # <— force pull even if tag unchanged
-        with_registry_auth: yes   # <— pass ECR creds to swarm nodes
+        #resolve_image: always     # <— force pull even if tag unchanged
+        #with_registry_auth: yes   # <— pass ECR creds to swarm nodes
     - name: Show stack services status
       command: docker service ls --filter name={{ stack_name }}
       register: services_status

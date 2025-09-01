@@ -1,6 +1,6 @@
 services:
   backend:
-    image: 982383527471.dkr.ecr.ca-central-1.amazonaws.com/todos/backend-rails:latest
+    image: 982383527471.dkr.ecr.ca-central-1.amazonaws.com/todos/backend-rails
     deploy:
       replicas: 1
       restart_policy:
@@ -21,7 +21,7 @@ services:
       - db
 
   db:
-    image: 982383527471.dkr.ecr.ca-central-1.amazonaws.com/todos/db:latest
+    image: 982383527471.dkr.ecr.ca-central-1.amazonaws.com/todos/db
     deploy:
       replicas: 1
       restart_policy:
