@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+docker context use todos-vm
+
+CID=$(docker ps --filter "name=_db\." --format "{{.ID}}" | head -n1)
+
+docker exec -it -u postgres "$CID" bash

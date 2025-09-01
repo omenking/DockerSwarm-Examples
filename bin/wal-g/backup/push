@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+docker context use todos-vm
+DB_CID=$(docker ps --filter "name=_db." --format "{{.ID}}")
+docker exec \
+-e PGUSER=postgres \
+-e PGPASSWORD=password \
+-e PGHOST=127.0.0.1 \
+-e PGPORT=5432 \
+-e WALG_PGDATA=/var/lib/postgresql/data \
+-it $DB_CID wal-g backup-push  

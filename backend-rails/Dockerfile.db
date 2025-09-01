@@ -1,0 +1,32 @@
+# Dockerfile: postgres 14 + WAL-G
+FROM postgres:14
+
+# We have to bake in the Wal-G, binding from host hacine with Wal-G will not work
+
+# ---- configurable bits ----
+ARG WAL_G_VERSION=v3.0.7
+# Use a build that matches the base image’s libc. If this fails on your tag,
+# swap to the Debian build, e.g. wal-g-pg-debian-12-amd64.tar.gz
+ARG WAL_G_TARBALL=wal-g-pg-ubuntu-24.04-amd64.tar.gz
+# ---------------------------
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends wget ca-certificates; \
+    update-ca-certificates; \
+    # download
+    wget -O /tmp/wal-g.tar.gz \
+      "https://github.com/wal-g/wal-g/releases/download/${WAL_G_VERSION}/${WAL_G_TARBALL}"; \
+    # extract to /usr/local/bin
+    tar -xzf /tmp/wal-g.tar.gz -C /usr/local/bin/; \
+    # rename to plain 'wal-g' (matches your Ansible step)
+    if [ -f "/usr/local/bin/wal-g-pg-ubuntu-24.04-amd64" ]; then \
+      mv /usr/local/bin/wal-g-pg-ubuntu-24.04-amd64 /usr/local/bin/wal-g; \
+    elif [ -f "/usr/local/bin/wal-g-pg-debian-12-amd64" ]; then \
+      mv /usr/local/bin/wal-g-pg-debian-12-amd64 /usr/local/bin/wal-g; \
+    fi; \
+    chmod 0755 /usr/local/bin/wal-g; \
+    # quick sanity check (fails the build if wrong arch/libs)
+    /usr/local/bin/wal-g --version; \
+    # cleanup
+    rm -rf /var/lib/apt/lists/* /tmp/wal-g.tar.gz

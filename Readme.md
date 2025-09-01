@@ -57,12 +57,18 @@ We'll bootstrap our server to be able to run a cluster
 
 ```sh
 ./bin/bootstrap
+./bin/install-db-backup
 ```
+
 
 ## Deploy Workload
 
+This will deploy the docker-compose.pro-debug.yml
+It will run it on the service since we need to pull images
+on the server
+
 ```sh
-docker stack deploy -c docker-compose.prod.yml todos
+./bin/stack-deploy
 ```
 
 ## Configure Docker Context For Remote Swarm

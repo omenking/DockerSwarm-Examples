@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+docker context use todos-vm
+
+CID=$(docker ps --filter "name=_backend\." --format "{{.ID}}" | head -n1)
+
+docker exec -it "$CID" bash -lc "RAILS_ENV=production bundle exec rails db:migrate"

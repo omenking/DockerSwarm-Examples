@@ -1,6 +1,6 @@
 services:
   backend:
-    image: 982383527471.dkr.ecr.ca-central-1.amazonaws.com/todos/backend-rails
+    image: 982383527471.dkr.ecr.ca-central-1.amazonaws.com/todos/backend-rails:latest
     deploy:
       replicas: 1
       restart_policy:
@@ -21,20 +21,44 @@ services:
       - db
 
   db:
-    image: postgres:14
+    image: 982383527471.dkr.ecr.ca-central-1.amazonaws.com/todos/db:latest
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
       placement:
         constraints:
-          - node.role == manager  # Keep DB on manager for data persistence
+          - node.role == manager  # keep DB on the node that has /usr/local/bin/wal-g
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Might not be working so disable.
+      # make wal-g available INSIDE the container
+      #- type: bind
+      #  source: /usr/local/bin/wal-g
+      #  target: /usr/local/bin/wal-g
+      #  read_only: true
     environment:
       - POSTGRES_PASSWORD=password
       - POSTGRES_USER=postgres
       - POSTGRES_DB=todos_prod
+      - WALG_S3_PREFIX=s3://todos-db-backup  # <-- change me
+      - AWS_REGION=ca-central-1
+      # Optional server-side encryption:
+      # - WALG_S3_SSE=aws:kms
+      # - WALG_SSE_KMS_ID=arn:aws:kms:ca-central-1:...:key/...
+    # Postgres params to enable archiving to S3 via wal-g
+    command: >
+      postgres
+        -c wal_level=replica
+        -c archive_mode=on
+        -c archive_timeout=60s
+        -c archive_command='/usr/local/bin/wal-g wal-push %p'
+        -c restore_command='/usr/local/bin/wal-g wal-fetch "%f" "%p"'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     ports:
       - "5432:5432"
     networks:

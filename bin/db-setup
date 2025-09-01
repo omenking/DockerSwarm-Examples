@@ -1,1 +1,4 @@
 #!/usr/bin/env bash
+
+
+docker ps --filter "ancestor=postgres:14" --format '{{.ID}}'

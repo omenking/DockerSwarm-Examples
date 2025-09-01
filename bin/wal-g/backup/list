@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+docker context use todos-vm
+DB_CID=$(docker ps --filter "name=_db." --format "{{.ID}}")
+printf "\nCheck Settings:\n"
+docker exec $DB_CID env | egrep 'WALG|AWS'
+printf "\n\nwal-g backup-list:\n"
+docker exec $DB_CID wal-g backup-list  

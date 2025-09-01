@@ -31,6 +31,9 @@
         name:
           - ca-certificates
           - curl
+          # We'll need this for docker community anisble to pull the image
+          - python3-pip
+          - python3-jsondiff
         state: present
         
     - name: Create Docker keyring directory
@@ -64,8 +67,6 @@
           - containerd.io
           - docker-buildx-plugin
           - docker-compose-plugin
-          # We'll need this for docker community anisble to pull the image
-          - python3-pip
         state: present
         
     - name: Create docker group (ignore if exists)

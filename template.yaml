@@ -18,6 +18,8 @@ Parameters:
     Type: AWS::EC2::KeyPair::KeyName
     Description: Name of existing EC2 KeyPair
     Default: ''
+  BucketName:
+    Type: String
 Resources:
   # IAM Role for EC2 instance
   EC2Role:
@@ -34,7 +36,22 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      Policies:
+        - PolicyName: WalGExactS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: List
+                Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub arn:aws:s3:::${BucketName}
+              - Sid: RWObjects
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: !Sub arn:aws:s3:::${BucketName}/*
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-EC2-Role'
@@ -91,6 +108,9 @@ Resources:
       SubnetId: !Ref SubnetId
       MetadataOptions:
         HttpTokens: required  # Force IMDSv2 only - more secure
+        # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-IMDS-existing-instances.html
+        # https://www.reddit.com/r/aws/comments/1cxywu8/how_to_use_the_role_attached_to_host_ec2_instance/
+        # Hop limit wil affect the layers of virtualization allowed to access credentials.
         HttpPutResponseHopLimit: 2
         HttpEndpoint: enabled
       Tags:
@@ -102,12 +122,3 @@ Outputs:
     Value: !GetAtt WebInstance.PublicIp
     Export:
       Name: !Sub '${AWS::StackName}-PublicIP'
-
-# Get the public IP from stack outputs
-PUBLIC_IP=$(aws cloudformation describe-stacks \
-  --stack-name $STACK_NAME \
-  --region ca-central-1 \
-  --query "Stacks[0].Outputs[?OutputKey=='InstancePublicIP'].OutputValue" \
-  --output text)
-
-echo "Instance Public IP: $PUBLIC_IP"

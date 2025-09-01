@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+docker context use todos-vm
+
+DB_CID=$(docker ps --filter "name=_db\." --format "{{.ID}}" | head -n1)
+
+# show all WAL-G env first
+docker exec "$DB_CID" env | grep -E '^(WALG|AWS)_'
+
+# list objects in your prefix (like 'aws s3 ls')
+docker exec "$DB_CID" wal-g st ls
+
+# try writing and deleting a probe file
+docker exec "$DB_CID" wal-g st put /etc/hosts wal-g-probe-$(date +%s)
+docker exec "$DB_CID" wal-g st ls | grep wal-g-probe
+docker exec "$DB_CID" wal-g st rm wal-g-probe-*

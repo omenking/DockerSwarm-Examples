@@ -10,6 +10,7 @@
     region: "ca-central-1"
     ssh_key_path: "{{ ansible_env.HOME }}/.ssh/aws-developers.pem"
     ssh_config_path: "{{ ansible_env.HOME }}/.ssh/config"
+    bucket_name: todos-db-backup
     
   tasks:
     - name: Get default VPC ID
@@ -48,6 +49,7 @@
           VpcId: "{{ default_vpc_id }}"
           SubnetId: "{{ default_subnet_id }}"
           KeyPairName: "{{ key_pair_name }}"
+          BucketName: "{{ bucket_name }}"
         tags:
           Environment: development
           Project: todos

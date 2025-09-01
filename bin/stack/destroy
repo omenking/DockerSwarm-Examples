@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
 docker stack rm todos
+
+# This will delete the volumes which would delete data...
 #docker volume ls | grep todos_postgres_data
 #docker volume rm todos_postgres_data
