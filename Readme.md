@@ -57,7 +57,6 @@ We'll bootstrap our server to be able to run a cluster
 
 ```sh
 ./bin/bootstrap
-./bin/install-db-backup
 ```
 
 
